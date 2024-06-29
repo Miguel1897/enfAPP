@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';  // Importa useNavigate
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../../backend/src/routes/api';
 import { Container, Box, Paper, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, TextField, Button, useMediaQuery } from '@mui/material';
 import Swal from 'sweetalert2';
 
 const Parametros = () => {
   const { numero, cama } = useParams();
-  const navigate = useNavigate(); // Inicializa useNavigate
+  const navigate = useNavigate();
   const [parametros, setParametros] = useState({
     pas: '',
     pad: '',
@@ -44,6 +44,7 @@ const Parametros = () => {
           console.error('No se encontró el DNI del paciente en la habitación:', numero, cama);
         }
       } catch (error) {
+        console.error('Error al fetchear los parámetros:', error.message);
       }
     };
 
@@ -65,11 +66,11 @@ const Parametros = () => {
         ...parametros
       });
       console.log('Respuesta del servidor:', response.data);
-  
+
       const pacienteResponse = await api.get(`/pacientes/${response.data.dniPaciente}`);
       setNombrePaciente(pacienteResponse.data.nombre);
       setApellidoPaciente(pacienteResponse.data.apellido);
-  
+
       setParametros(response.data); // Actualiza el estado con los datos guardados  
       // Muestra la alerta de éxito
       Swal.fire({
@@ -81,11 +82,10 @@ const Parametros = () => {
         // Redirige a la habitación después de cerrar la alerta
         navigate(`/habitaciones/${numero}/${cama}`);
       });
-  
 
     } catch (error) {
       console.error('Error al guardar los parámetros:', error.message);
-  
+
       // Muestra la alerta de error
       Swal.fire({
         icon: 'error',
@@ -95,7 +95,7 @@ const Parametros = () => {
       });
     }
   };
-  
+
   const getClasificacion = (parametro, valor) => {
     const numericValue = parseFloat(valor);
     switch (parametro) {
@@ -144,74 +144,73 @@ const Parametros = () => {
   }
 
   return (
-        <Paper elevation={2} style={{
-          maxWidth: 1200,
-          maxHeight: 1060,
-          padding: 20,
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-          boxShadow: '0px 0px 10px rgba(0, 0, 0, 1)',
-          margin: 'auto', marginTop: 50
-        }}>
-          <Box p={3}>
-            <Typography variant="h4" align="center" gutterBottom>
-              Parámetros Clínicos - Habitación {numero} - Cama {cama}
-            </Typography>
-            <Typography align="center" gutterBottom>
-              Paciente: {nombrePaciente || 'Sin nombre'} {apellidoPaciente || 'Sin apellido'} (DNI: {dniPaciente})
-            </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Parámetros Clínicos</TableCell>
+    <Container>
+      <Paper elevation={2} style={{
+        maxWidth: 1200,
+        maxHeight: 1060,
+        padding: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        boxShadow: '0px 0px 10px rgba(0, 0, 0, 1)',
+        margin: 'auto', marginTop: 50
+      }}>
+        <Box p={3}>
+          <Typography variant="h4" align="center" gutterBottom>
+            Parámetros Clínicos - Habitación {numero} - Cama {cama}
+          </Typography>
+          <Typography align="center" gutterBottom>
+            Paciente: {nombrePaciente || 'Sin nombre'} {apellidoPaciente || 'Sin apellido'} (DNI: {dniPaciente})
+          </Typography>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Parámetros Clínicos</TableCell>
+                  {!isMobile && (
+                    <>
+                      <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Valor Referencia Mín.</TableCell>
+                      <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Valor Referencia Máx.</TableCell>
+                    </>
+                  )}
+                  <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Valor Tomado</TableCell>
+                  {!isMobile && <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Unidades</TableCell>}
+                  <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Clasificación</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {['pas', 'pad', 'fc', 'fr', 'temp', 'peso', 'talla', 'spo2', 'glucometria', 'HemoglucotestPreprandial', 'HemoglucotestPostprandial'].map(parametro => (
+                  <TableRow key={parametro}>
+                    <TableCell style={{ backgroundColor: '#f8f8f8' }}>{getParametroName(parametro)}</TableCell>
                     {!isMobile && (
                       <>
-                        <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Valor Referencia Mín.</TableCell>
-                        <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Valor Referencia Máx.</TableCell>
+                        <TableCell>{getValorReferenciaMin(parametro)}</TableCell>
+                        <TableCell>{getValorReferenciaMax(parametro)}</TableCell>
                       </>
                     )}
-                    <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Valor Tomado</TableCell>
-                    {!isMobile && <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Unidades</TableCell>}
-                    <TableCell style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Clasificación</TableCell>
+                    <TableCell>
+                      <TextField
+                        value={parametros[parametro] || ''}
+                        onChange={(e) => handleChange(e, parametro)}
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                      />
+                    </TableCell>
+                    {!isMobile && <TableCell>{getUnidades(parametro)}</TableCell>}
+                    <TableCell>{getClasificacion(parametro, parametros[parametro])}</TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {['pas', 'pad', 'fc', 'fr', 'temp', 'peso', 'talla', 'spo2', 'glucometria', 'HemoglucotestPreprandial', 'HemoglucotestPostprandial'].map(parametro => (
-                    <TableRow key={parametro}>
-                      <TableCell style={{ backgroundColor: '#f8f8f8' }}>{getParametroName(parametro)}</TableCell>
-                      {!isMobile && (
-                        <>
-                          <TableCell>{getValorReferenciaMin(parametro)}</TableCell>
-                          <TableCell>{getValorReferenciaMax(parametro)}</TableCell>
-                        </>
-                      )}
-
-                      <TableCell>
-                        <TextField
-                          value={parametros[parametro] || ''}
-                          onChange={(e) => handleChange(e, parametro)}
-                          variant="outlined"
-                          size="small"
-                          fullWidth
-                        />
-                      </TableCell>
-                      {!isMobile && <TableCell>{getUnidades(parametro)}</TableCell>}
-                      <TableCell>{getClasificacion(parametro, parametros[parametro])}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <Box mt={2} display="flex" justifyContent="center">
-              <Button variant="contained" color="primary" onClick={handleSave}>
-                Guardar
-              </Button>
-            </Box>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <Box mt={2} display="flex" justifyContent="center">
+            <Button variant="contained" color="primary" onClick={handleSave}>
+              Guardar
+            </Button>
           </Box>
-        </Paper>
-      </Box>
+        </Box>
+      </Paper>
     </Container>
-  );  
+  );
 };
 
 const getParametroName = (parametro) => {
